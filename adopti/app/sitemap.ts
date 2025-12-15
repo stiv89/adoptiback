@@ -1,6 +1,7 @@
 import type { MetadataRoute } from "next";
 
-const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+// Use production URL by default; override with NEXT_PUBLIC_SITE_URL if needed.
+const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://adopti.app";
 
 const staticPaths = [
   "/",
