@@ -1,5 +1,8 @@
 import Link from "next/link";
 import { supabase } from "@/lib/supabase/server";
+import dynamic from "next/dynamic";
+
+const ApplyCta = dynamic(() => import("@/components/pets/apply-cta"), { ssr: false });
 
 export default async function PetPage({ params }: { params: { id: string } }) {
   const { data: pet } = await supabase
@@ -36,14 +39,13 @@ export default async function PetPage({ params }: { params: { id: string } }) {
             <h1 className="text-2xl font-semibold">{pet.name}</h1>
             <p className="text-sm text-neutral-500">{pet.city ?? ""}</p>
             <p className="mt-3 text-neutral-700">{pet.description}</p>
-
-            <button className="mt-5 w-full rounded-xl bg-black px-4 py-3 text-white transition-colors hover:bg-neutral-800 active:bg-neutral-900">
-              Postularme
-            </button>
           </div>
         </div>
+
+        <ApplyCta petId={pet.id} />
       </div>
     </main>
   );
 }
+
 

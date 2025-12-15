@@ -55,6 +55,12 @@ export default function Home() {
               <SkeletonCard key={i} />
             ))}
           </>
+        ) : pets.length === 0 ? (
+          <div className="col-span-full rounded-2xl border border-dashed bg-white/80 p-6 text-center text-neutral-600">
+            <div className="mb-2 text-3xl">🐾</div>
+            <p className="text-sm font-medium">Aún no hay mascotas publicadas</p>
+            <p className="text-xs text-neutral-500">Vuelve pronto o publícala primero</p>
+          </div>
         ) : (
           pets.map((p) => {
             // Ordenar y tomar la primera (sort menor = portada)
@@ -66,7 +72,7 @@ export default function Home() {
             return (
               <Link key={p.id} href={`/pets/${p.id}`}>
                 <article className="overflow-hidden rounded-2xl border transition-transform hover:scale-[1.02] active:scale-[0.98]">
-                  <div className="aspect-square w-full bg-neutral-100">
+                  <div className="aspect-square w-full bg-white">
                     {url ? (
                       <img src={url} alt={p.name} className="h-full w-full object-cover" />
                     ) : (
