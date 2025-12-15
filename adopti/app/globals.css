@@ -3,10 +3,12 @@
 @tailwind utilities;
 
 :root {
-  --background: #fff7ed; /* pastel durazno */
-  --foreground: #0f172a;
-  --brand: #f97316;
-  --brand-soft: #fff5eb;
+  --background: #fff3ef; /* primary soft */
+  --foreground: #1f2937; /* text primary */
+  --muted: #6b7280; /* text secondary */
+  --border: #e5e7eb;
+  --brand: #f47a5a;
+  --brand-soft: #fff3ef;
 }
 
 body {

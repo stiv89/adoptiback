@@ -14,11 +14,11 @@ type Pet = {
 
 function SkeletonCard() {
   return (
-    <article className="overflow-hidden rounded-2xl border">
-      <div className="aspect-square w-full animate-pulse bg-neutral-200" />
+    <article className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+      <div className="aspect-square w-full animate-pulse bg-gray-200" />
       <div className="p-3">
-        <div className="mb-2 h-4 w-3/4 animate-pulse rounded bg-neutral-200" />
-        <div className="h-3 w-1/2 animate-pulse rounded bg-neutral-200" />
+        <div className="mb-2 h-4 w-3/4 animate-pulse rounded bg-gray-200" />
+        <div className="h-3 w-1/2 animate-pulse rounded bg-gray-200" />
       </div>
     </article>
   );
@@ -71,12 +71,12 @@ export default function Home() {
 
             return (
               <Link key={p.id} href={`/pets/${p.id}`}>
-                <article className="overflow-hidden rounded-2xl border transition-transform hover:scale-[1.02] active:scale-[0.98]">
-                  <div className="aspect-square w-full bg-white">
+                <article className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm transition-transform hover:scale-[1.02] active:scale-[0.98]">
+                  <div className="aspect-square w-full bg-brand-50">
                     {url ? (
                       <img src={url} alt={p.name} className="h-full w-full object-cover" />
                     ) : (
-                      <div className="flex h-full items-center justify-center text-sm text-neutral-500">
+                      <div className="flex h-full items-center justify-center text-sm text-gray-500">
                         Sin foto
                       </div>
                     )}
@@ -84,11 +84,17 @@ export default function Home() {
 
                   <div className="p-3">
                     <div className="flex items-center justify-between">
-                      <h2 className="font-medium">{p.name}</h2>
-                      <span className="text-xs text-neutral-500">{p.city ?? ""}</span>
+                      <h2 className="font-semibold text-gray-900">{p.name}</h2>
+                      <span className="text-xs text-gray-500">{p.city ?? ""}</span>
                     </div>
-                    <p className="mt-1 text-sm text-neutral-600">
-                      {p.status === "available" ? "Disponible" : "En proceso"}
+                    <p className="mt-1 text-sm text-gray-600">
+                      {p.status === "available" ? (
+                        <span className="rounded-full bg-brand-50 px-2 py-1 font-medium text-brand">
+                          Disponible
+                        </span>
+                      ) : (
+                        "En proceso"
+                      )}
                     </p>
                   </div>
                 </article>

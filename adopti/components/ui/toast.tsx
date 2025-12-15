@@ -20,6 +20,7 @@ const ToastContext = createContext<ToastContextValue | undefined>(undefined);
 
 export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
+  const [mounted, setMounted] = useState(false);
 
   const toast = (t: Omit<Toast, "id">) => {
     const id = crypto.randomUUID();
@@ -32,10 +33,14 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
 
   const value = useMemo(() => ({ toast }), []);
 
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   return (
     <ToastContext.Provider value={value}>
       {children}
-      {typeof document !== "undefined"
+      {mounted && typeof document !== "undefined"
         ? createPortal(
             <div className="pointer-events-none fixed inset-x-0 top-4 z-[100] flex flex-col items-center gap-2 px-3">
               {toasts.map((t) => (
