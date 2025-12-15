@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase/client";
+import { motion } from "framer-motion";
 
 type Pet = {
   id: string;
@@ -71,7 +72,13 @@ export default function Home() {
 
             return (
               <Link key={p.id} href={`/pets/${p.id}`}>
-                <article className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm transition-transform hover:scale-[1.02] active:scale-[0.98]">
+                <motion.article
+                  whileTap={{ scale: 0.97 }}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm"
+                >
                   <div className="aspect-square w-full bg-brand-50">
                     {url ? (
                       <img src={url} alt={p.name} className="h-full w-full object-cover" />
@@ -84,7 +91,7 @@ export default function Home() {
 
                   <div className="p-3">
                     <div className="flex items-center justify-between">
-                      <h2 className="font-semibold text-gray-900">{p.name}</h2>
+                      <h2 className="text-lg font-semibold text-gray-900">{p.name}</h2>
                       <span className="text-xs text-gray-500">{p.city ?? ""}</span>
                     </div>
                     <p className="mt-1 text-sm text-gray-600">
@@ -97,7 +104,7 @@ export default function Home() {
                       )}
                     </p>
                   </div>
-                </article>
+                </motion.article>
               </Link>
             );
           })

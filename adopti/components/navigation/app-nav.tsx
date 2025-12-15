@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession } from "@/components/auth/session-provider";
 import Image from "next/image";
+import { motion } from "framer-motion";
 
 const icons = {
   home: (
@@ -102,7 +103,7 @@ export default function AppNav() {
       </header>
 
       <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-gray-200 bg-white/95 shadow-[0_-4px_10px_rgba(0,0,0,0.04)] backdrop-blur md:hidden">
-        <ul className="grid grid-cols-4 text-xs font-medium text-gray-500">
+        <ul className="relative grid grid-cols-4 text-xs font-medium text-gray-500">
           {items.map((item) => {
             const active = isActive(item.href);
             return (
@@ -115,6 +116,13 @@ export default function AppNav() {
                 >
                   <span className="text-lg">{icons[item.icon]}</span>
                   <span>{item.label}</span>
+                  {active ? (
+                    <motion.span
+                      layoutId="nav-indicator"
+                      className="absolute -top-[2px] h-1 w-6 rounded-full bg-brand"
+                      transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                    />
+                  ) : null}
                 </Link>
               </li>
             );
