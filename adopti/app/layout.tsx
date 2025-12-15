@@ -89,6 +89,7 @@ export default function RootLayout({
                     <div className="flex flex-col gap-1">
                       <Link href="/about" className="hover:text-brand">Sobre Adopti</Link>
                       <Link href="/contacto" className="hover:text-brand">Contacto</Link>
+                      <Link href="/terminos" className="hover:text-brand">Términos</Link>
                     </div>
                   </div>
                 </div>

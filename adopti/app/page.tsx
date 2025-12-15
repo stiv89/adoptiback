@@ -28,6 +28,9 @@ function SkeletonCard() {
 export default function Home() {
   const [pets, setPets] = useState<Pet[]>([]);
   const [loading, setLoading] = useState(true);
+  const [cityFilter, setCityFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"" | "available" | "in_process">("");
+  const [onlyWithPhoto, setOnlyWithPhoto] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -45,9 +48,53 @@ export default function Home() {
     })();
   }, []);
 
+  const filteredPets = pets.filter((p) => {
+    if (statusFilter && p.status !== statusFilter) return false;
+    if (onlyWithPhoto && !(p.pet_photos || []).length) return false;
+    if (cityFilter && !`${p.city ?? ""}`.toLowerCase().includes(cityFilter.toLowerCase())) return false;
+    return true;
+  });
+
   return (
     <main className="min-h-screen p-4">
-      <h1 className="text-xl font-semibold">Adopti</h1>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="text-sm text-gray-500">Mascotas</p>
+          <h1 className="text-2xl font-semibold text-gray-900">Adopti</h1>
+        </div>
+        <div className="flex items-center gap-2 overflow-x-auto rounded-full bg-white/80 p-2 text-xs font-semibold text-gray-700 shadow-sm">
+          <button
+            onClick={() => setStatusFilter("")}
+            className={`rounded-full px-3 py-1 ${statusFilter === "" ? "bg-gray-200 text-gray-900" : "hover:text-brand"}`}
+          >
+            Todas
+          </button>
+          <button
+            onClick={() => setStatusFilter("available")}
+            className={`rounded-full px-3 py-1 ${statusFilter === "available" ? "bg-gray-200 text-gray-900" : "hover:text-brand"}`}
+          >
+            Disponibles
+          </button>
+          <button
+            onClick={() => setStatusFilter("in_process")}
+            className={`rounded-full px-3 py-1 ${statusFilter === "in_process" ? "bg-gray-200 text-gray-900" : "hover:text-brand"}`}
+          >
+            En proceso
+          </button>
+          <button
+            onClick={() => setOnlyWithPhoto((v) => !v)}
+            className={`rounded-full px-3 py-1 ${onlyWithPhoto ? "bg-gray-200 text-gray-900" : "hover:text-brand"}`}
+          >
+            Con foto
+          </button>
+          <input
+            value={cityFilter}
+            onChange={(e) => setCityFilter(e.target.value)}
+            placeholder="Ciudad"
+            className="min-w-[120px] rounded-full border border-gray-200 bg-white px-3 py-1 text-xs font-medium text-gray-700 outline-none ring-brand/30 focus:ring-2"
+          />
+        </div>
+      </div>
 
       <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {loading ? (
@@ -56,14 +103,14 @@ export default function Home() {
               <SkeletonCard key={i} />
             ))}
           </>
-        ) : pets.length === 0 ? (
+        ) : filteredPets.length === 0 ? (
           <div className="col-span-full rounded-2xl border border-dashed bg-white/80 p-6 text-center text-neutral-600">
             <div className="mb-2 text-3xl">🐾</div>
-            <p className="text-sm font-medium">Aún no hay mascotas publicadas</p>
-            <p className="text-xs text-neutral-500">Vuelve pronto o publícala primero</p>
+            <p className="text-sm font-medium">Aún no hay mascotas con estos filtros</p>
+            <p className="text-xs text-neutral-500">Prueba ajustar ciudad o estado</p>
           </div>
         ) : (
-          pets.map((p) => {
+          filteredPets.map((p) => {
             // Ordenar y tomar la primera (sort menor = portada)
             const photo = (p.pet_photos || []).sort((a, b) => a.sort - b.sort)[0];
             const url = photo

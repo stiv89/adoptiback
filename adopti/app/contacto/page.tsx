@@ -15,7 +15,15 @@ export default function ContactoPage() {
       </div>
 
       <div className="rounded-2xl border border-gray-200 bg-white/80 p-4 text-sm text-gray-700">
-        Escríbenos a: <span className="font-semibold text-brand">hola@adopti.app</span>
+        Escríbenos a:{" "}
+        <a href="mailto:adopti@digita.com.py" className="font-semibold text-brand hover:underline">
+          adopti@digita.com.py
+        </a>
+        <br />
+        Teléfono / WhatsApp:{" "}
+        <a href="tel:+595982110788" className="font-semibold text-brand hover:underline">
+          +595 982 110788
+        </a>
         <br />
         También podemos coordinar por WhatsApp o llamada si lo prefieres.
       </div>
