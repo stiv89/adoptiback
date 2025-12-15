@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
+import Image from "next/image";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -94,7 +95,7 @@ export default function LoginPage() {
         disabled={oauthLoading}
         className="flex w-full items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm font-semibold text-gray-800 transition hover:border-brand hover:text-brand active:scale-95 disabled:opacity-60"
       >
-        <span className="text-base">🔒</span>
+        <Image src="/google.png" alt="Google" width={18} height={18} className="h-4 w-4" />
         {oauthLoading ? "Redirigiendo a Google..." : "Continuar con Google"}
       </button>
 
