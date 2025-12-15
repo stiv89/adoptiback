@@ -10,6 +10,7 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [oauthLoading, setOauthLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -29,6 +30,18 @@ export default function LoginPage() {
     }
 
     router.replace("/");
+  };
+
+  const handleGoogle = async () => {
+    setOauthLoading(true);
+    setError(null);
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+    });
+    if (error) {
+      setError(error.message);
+      setOauthLoading(false);
+    }
   };
 
   return (
@@ -74,6 +87,16 @@ export default function LoginPage() {
           {loading ? "Ingresando..." : "Ingresar"}
         </button>
       </form>
+
+      <button
+        type="button"
+        onClick={handleGoogle}
+        disabled={oauthLoading}
+        className="flex w-full items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm font-semibold text-gray-800 transition hover:border-brand hover:text-brand active:scale-95 disabled:opacity-60"
+      >
+        <span className="text-base">🔒</span>
+        {oauthLoading ? "Redirigiendo a Google..." : "Continuar con Google"}
+      </button>
 
       <p className="text-center text-sm text-neutral-600">
         ¿No tienes cuenta?{" "}

@@ -1,8 +1,6 @@
 import Link from "next/link";
 import { supabase } from "@/lib/supabase/server";
-import dynamic from "next/dynamic";
-
-const ApplyCta = dynamic(() => import("@/components/pets/apply-cta"), { ssr: false });
+import ApplyCta from "@/components/pets/apply-cta";
 
 export default async function PetPage({ params }: { params: { id: string } }) {
   const { data: pet } = await supabase

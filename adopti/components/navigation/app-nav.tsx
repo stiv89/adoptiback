@@ -1,17 +1,45 @@
 "use client";
 
 import Link from "next/link";
-import { useSession } from "@/components/auth/session-provider";
 import { usePathname } from "next/navigation";
+import { useSession } from "@/components/auth/session-provider";
+import Image from "next/image";
+
+const icons = {
+  home: (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 10.5 12 3l9 7.5" />
+      <path d="M5 12v7a1 1 0 0 0 1 1h4v-5h4v5h4a1 1 0 0 0 1-1v-7" />
+    </svg>
+  ),
+  search: (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="11" cy="11" r="6" />
+      <path d="m15.5 15.5 3.5 3.5" />
+    </svg>
+  ),
+  plus: (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 5v14" />
+      <path d="M5 12h14" />
+    </svg>
+  ),
+  user: (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="8" r="4" />
+      <path d="M6 20c0-2.5 3-4 6-4s6 1.5 6 4" />
+    </svg>
+  ),
+};
 
 const baseNav = [
-  { label: "Home", href: "/", icon: "🏠" },
-  { label: "Buscar", href: "/search", icon: "🔍" },
+  { label: "Home", href: "/", icon: "home" as const },
+  { label: "Buscar", href: "/search", icon: "search" as const },
 ];
 
 const authedNav = [
-  { label: "Publicar", href: "/publish", icon: "➕" },
-  { label: "Perfil", href: "/profile", icon: "👤" },
+  { label: "Publicar", href: "/publish", icon: "plus" as const },
+  { label: "Perfil", href: "/profile", icon: "user" as const },
 ];
 
 export default function AppNav() {
@@ -33,9 +61,14 @@ export default function AppNav() {
       <header className="sticky top-0 z-50 border-b border-gray-200 bg-white/95 backdrop-blur">
         <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-4">
           <Link href="/" className="flex items-center gap-2 font-semibold text-gray-800">
-            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-brand text-white text-lg">
-              🐾
-            </span>
+            <Image
+              src="/adopti_app.jpg"
+              alt="Adopti"
+              width={36}
+              height={36}
+              className="h-9 w-9 rounded-full object-cover"
+              priority
+            />
             <span>Adopti</span>
           </Link>
 
@@ -80,7 +113,7 @@ export default function AppNav() {
                     active ? "text-brand font-semibold" : "text-gray-400 hover:text-brand"
                   }`}
                 >
-                  <span className="text-lg">{item.icon ?? "🐾"}</span>
+                  <span className="text-lg">{icons[item.icon]}</span>
                   <span>{item.label}</span>
                 </Link>
               </li>
