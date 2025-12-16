@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
@@ -14,6 +14,15 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [oauthLoading, setOauthLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [rememberEmail, setRememberEmail] = useState(false);
+
+  useEffect(() => {
+    const savedEmail = localStorage.getItem("adopti:rememberEmail");
+    if (savedEmail) {
+      setEmail(savedEmail);
+      setRememberEmail(true);
+    }
+  }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,6 +38,12 @@ export default function LoginPage() {
       setError("No pudimos iniciar sesión. Verifica tus datos o intenta de nuevo.");
       setLoading(false);
       return;
+    }
+
+    if (rememberEmail) {
+      localStorage.setItem("adopti:rememberEmail", email);
+    } else {
+      localStorage.removeItem("adopti:rememberEmail");
     }
 
     router.replace("/");
@@ -100,6 +115,16 @@ export default function LoginPage() {
               {showPassword ? "Ocultar" : "Mostrar"}
             </button>
           </div>
+        </label>
+
+        <label className="mb-4 flex items-center gap-2 text-sm text-neutral-700">
+          <input
+            type="checkbox"
+            checked={rememberEmail}
+            onChange={(e) => setRememberEmail(e.target.checked)}
+            className="h-4 w-4 rounded border-gray-300 text-brand focus:ring-brand"
+          />
+          <span>Recordar mi email en este dispositivo</span>
         </label>
 
         {error ? <p className="mb-3 text-sm text-red-600">{error}</p> : null}

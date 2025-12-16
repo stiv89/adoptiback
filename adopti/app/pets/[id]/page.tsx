@@ -1,12 +1,15 @@
 import Link from "next/link";
 import { supabase } from "@/lib/supabase/server";
 import ApplyCta from "@/components/pets/apply-cta";
+import EditButton from "@/components/pets/edit-button";
+import SaveButton from "@/components/pets/save-button";
 
-export default async function PetPage({ params }: { params: { id: string } }) {
+export default async function PetPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const { data: pet } = await supabase
     .from("pets")
     .select("id,name,city,description,status,pet_photos(path,sort)")
-    .eq("id", params.id)
+    .eq("id", id)
     .single();
 
   if (!pet) return <div className="p-4">No existe</div>;
@@ -23,7 +26,10 @@ export default async function PetPage({ params }: { params: { id: string } }) {
       </Link>
 
       <div className="mx-auto max-w-2xl">
-        <div className="overflow-hidden rounded-2xl border">
+        <div className="relative overflow-hidden rounded-2xl border">
+          <div className="absolute right-4 top-4 z-10">
+            <SaveButton petId={pet.id} size="lg" className="bg-white/90 backdrop-blur-sm" />
+          </div>
           <div className="aspect-square bg-neutral-100">
             {url ? (
               <img src={url} alt={pet.name} className="h-full w-full object-cover" />
@@ -41,6 +47,7 @@ export default async function PetPage({ params }: { params: { id: string } }) {
         </div>
 
         <ApplyCta petId={pet.id} />
+        <EditButton petId={pet.id} />
       </div>
     </main>
   );

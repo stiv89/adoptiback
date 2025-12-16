@@ -1,0 +1,330 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { useRouter, useParams } from "next/navigation";
+import Link from "next/link";
+import { supabase } from "@/lib/supabase/client";
+import { useSession } from "@/components/auth/session-provider";
+import { useToast } from "@/components/ui/toast";
+import type { EnergyLevel, LifeStage } from "@/lib/pets/tags";
+import { TAG_LABELS, ENERGY_LABELS, STAGE_LABELS } from "@/lib/pets/tags";
+
+function getMyLocation(): Promise<{ lat: number; lng: number }> {
+  return new Promise((resolve, reject) => {
+    navigator.geolocation.getCurrentPosition(
+      (pos) => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+      (err) => reject(err),
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  });
+}
+
+function TriToggle({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: boolean | null;
+  onChange: (v: boolean | null) => void;
+}) {
+  const btn = (active: boolean) =>
+    `px-3 py-2 rounded-xl text-sm border transition ${
+      active ? "border-transparent bg-[#F47A5A] text-white" : "border-gray-200 bg-white text-gray-700"
+    }`;
+
+  return (
+    <div className="flex items-center justify-between gap-3">
+      <span className="text-sm text-gray-800">{label}</span>
+      <div className="flex gap-2">
+        <button type="button" className={btn(value === true)} onClick={() => onChange(true)}>
+          Sí
+        </button>
+        <button type="button" className={btn(value === false)} onClick={() => onChange(false)}>
+          No
+        </button>
+        <button type="button" className={btn(value === null)} onClick={() => onChange(null)}>
+          No sé
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function Select({
+  label,
+  value,
+  onChange,
+  options,
+}: {
+  label: string;
+  value: string | null;
+  onChange: (v: string | null) => void;
+  options: { value: string; label: string }[];
+}) {
+  return (
+    <label className="block">
+      <div className="mb-1 text-sm text-gray-700">{label}</div>
+      <select
+        className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm outline-none ring-brand/30 focus:ring-2"
+        value={value ?? ""}
+        onChange={(e) => onChange(e.target.value || null)}
+      >
+        <option value="">No informado</option>
+        {options.map((o) => (
+          <option key={o.value} value={o.value}>
+            {o.label}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
+export default function EditPetPage() {
+  const router = useRouter();
+  const params = useParams();
+  const petId = params.id as string;
+  const { user } = useSession();
+  const { toast } = useToast();
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [geoLoading, setGeoLoading] = useState(false);
+  const [name, setName] = useState("");
+  const [species, setSpecies] = useState<"dog" | "cat" | "">("");
+  const [city, setCity] = useState("");
+  const [description, setDescription] = useState("");
+  const [lat, setLat] = useState<number | null>(null);
+  const [lng, setLng] = useState<number | null>(null);
+  const [isOwner, setIsOwner] = useState(false);
+
+  // Tags
+  const [vaccinated, setVaccinated] = useState<boolean | null>(null);
+  const [dewormed, setDewormed] = useState<boolean | null>(null);
+  const [neutered, setNeutered] = useState<boolean | null>(null);
+  const [good_with_dogs, setGoodWithDogs] = useState<boolean | null>(null);
+  const [good_with_cats, setGoodWithCats] = useState<boolean | null>(null);
+  const [good_with_kids, setGoodWithKids] = useState<boolean | null>(null);
+  const [apartment_ok, setApartmentOk] = useState<boolean | null>(null);
+  const [special_needs, setSpecialNeeds] = useState<boolean | null>(null);
+  const [energy_level, setEnergyLevel] = useState<EnergyLevel | null>(null);
+  const [life_stage, setLifeStage] = useState<LifeStage | null>(null);
+
+  useEffect(() => {
+    (async () => {
+      const { data: pet, error } = await supabase.from("pets").select("*").eq("id", petId).single();
+      if (error || !pet) {
+        toast({ title: "Mascota no encontrada", variant: "error" });
+        router.push("/");
+        return;
+      }
+      if (pet.owner_user_id !== user?.id) {
+        toast({ title: "No tienes permiso para editar", variant: "error" });
+        router.push(`/pets/${petId}`);
+        return;
+      }
+      setName(pet.name || "");
+      setSpecies((pet.species as "dog" | "cat") || "");
+      setCity(pet.city || "");
+      setDescription(pet.description || "");
+      setLat(pet.lat);
+      setLng(pet.lng);
+      setVaccinated(pet.vaccinated ?? null);
+      setDewormed(pet.dewormed ?? null);
+      setNeutered(pet.neutered ?? null);
+      setGoodWithDogs(pet.good_with_dogs ?? null);
+      setGoodWithCats(pet.good_with_cats ?? null);
+      setGoodWithKids(pet.good_with_kids ?? null);
+      setApartmentOk(pet.apartment_ok ?? null);
+      setSpecialNeeds(pet.special_needs ?? null);
+      setEnergyLevel(pet.energy_level ?? null);
+      setLifeStage(pet.life_stage ?? null);
+      setIsOwner(true);
+      setLoading(false);
+    })();
+  }, [petId, user, router, toast]);
+
+  const handleUseLocation = async () => {
+    setGeoLoading(true);
+    try {
+      const { lat: userLat, lng: userLng } = await getMyLocation();
+      setLat(userLat);
+      setLng(userLng);
+      toast({ title: "Ubicación actualizada", variant: "success" });
+    } catch (err: any) {
+      toast({ title: err.message || "No se pudo obtener la ubicación", variant: "error" });
+    } finally {
+      setGeoLoading(false);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name || !species || !city || !description || !lat || !lng) {
+      toast({ title: "Completa todos los campos", variant: "error" });
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const { error } = await supabase
+        .from("pets")
+        .update({
+          name,
+          species,
+          city,
+          description,
+          lat,
+          lng,
+          vaccinated,
+          dewormed,
+          neutered,
+          good_with_dogs,
+          good_with_cats,
+          good_with_kids,
+          apartment_ok,
+          special_needs,
+          energy_level,
+          life_stage,
+        })
+        .eq("id", petId);
+
+      if (error) throw error;
+      toast({ title: "Mascota actualizada", variant: "success" });
+      router.push(`/pets/${petId}`);
+    } catch (err: any) {
+      toast({ title: err.message || "Error al actualizar", variant: "error" });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <main className="mx-auto flex min-h-screen max-w-2xl flex-col justify-center gap-4 px-4 pb-24">
+        <p className="text-center text-sm text-gray-600">Cargando...</p>
+      </main>
+    );
+  }
+
+  if (!isOwner) {
+    return null;
+  }
+
+  return (
+    <main className="mx-auto flex min-h-screen max-w-2xl flex-col gap-4 px-4 pb-24">
+      <div className="mt-6">
+        <Link href={`/pets/${petId}`} className="mb-2 inline-block text-sm text-gray-600 underline">
+          ← Volver
+        </Link>
+        <p className="text-sm text-gray-500">Editar</p>
+        <h1 className="text-2xl font-semibold text-gray-900">Editar mascota</h1>
+      </div>
+
+      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <div className="rounded-2xl border border-gray-200 bg-white/80 p-4 shadow-sm">
+          <label className="mb-3 block text-sm font-medium text-gray-700">
+            Nombre *
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              required
+              className="mt-1 w-full rounded-xl border px-3 py-2 text-sm outline-none ring-brand/30 focus:ring-2"
+            />
+          </label>
+
+          <label className="mb-3 block text-sm font-medium text-gray-700">
+            Especie *
+            <select
+              value={species}
+              onChange={(e) => setSpecies(e.target.value as "dog" | "cat")}
+              required
+              className="mt-1 w-full rounded-xl border px-3 py-2 text-sm outline-none ring-brand/30 focus:ring-2"
+            >
+              <option value="">Selecciona</option>
+              <option value="dog">Perro</option>
+              <option value="cat">Gato</option>
+            </select>
+          </label>
+
+          <label className="mb-3 block text-sm font-medium text-gray-700">
+            Ciudad *
+            <input
+              type="text"
+              value={city}
+              onChange={(e) => setCity(e.target.value)}
+              required
+              className="mt-1 w-full rounded-xl border px-3 py-2 text-sm outline-none ring-brand/30 focus:ring-2"
+            />
+          </label>
+
+          <label className="mb-3 block text-sm font-medium text-gray-700">
+            Descripción *
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              required
+              rows={4}
+              className="mt-1 w-full rounded-xl border px-3 py-2 text-sm outline-none ring-brand/30 focus:ring-2"
+            />
+          </label>
+        </div>
+
+        <div className="rounded-2xl border border-gray-200 bg-white/80 p-4 shadow-sm">
+          <p className="mb-2 text-sm font-medium text-gray-700">Ubicación *</p>
+          <button
+            type="button"
+            onClick={handleUseLocation}
+            disabled={geoLoading}
+            className="mb-3 w-full rounded-xl border border-gray-900 bg-white px-4 py-2 text-sm font-semibold text-gray-900 transition active:scale-95 disabled:opacity-60"
+          >
+            {geoLoading ? "Obteniendo ubicación..." : "📍 Actualizar ubicación"}
+          </button>
+          {lat && lng && (
+            <p className="text-xs text-gray-600">
+              ✅ Ubicación: {lat.toFixed(4)}, {lng.toFixed(4)}
+            </p>
+          )}
+        </div>
+
+        <div className="rounded-2xl border border-gray-200 bg-white/80 p-4 shadow-sm">
+          <p className="mb-3 text-sm font-semibold text-gray-800">Información adicional</p>
+          <div className="space-y-3">
+            <TriToggle label={TAG_LABELS.vaccinated} value={vaccinated} onChange={setVaccinated} />
+            <TriToggle label={TAG_LABELS.dewormed} value={dewormed} onChange={setDewormed} />
+            <TriToggle label={TAG_LABELS.neutered} value={neutered} onChange={setNeutered} />
+            <TriToggle label={TAG_LABELS.good_with_dogs} value={good_with_dogs} onChange={setGoodWithDogs} />
+            <TriToggle label={TAG_LABELS.good_with_cats} value={good_with_cats} onChange={setGoodWithCats} />
+            <TriToggle label={TAG_LABELS.good_with_kids} value={good_with_kids} onChange={setGoodWithKids} />
+            <TriToggle label={TAG_LABELS.apartment_ok} value={apartment_ok} onChange={setApartmentOk} />
+            <TriToggle label={TAG_LABELS.special_needs} value={special_needs} onChange={setSpecialNeeds} />
+          </div>
+          <div className="mt-4 space-y-3">
+            <Select
+              label="Etapa de vida"
+              value={life_stage}
+              onChange={(v) => setLifeStage(v as LifeStage | null)}
+              options={Object.entries(STAGE_LABELS).map(([value, label]) => ({ value, label }))}
+            />
+            <Select
+              label="Nivel de energía"
+              value={energy_level}
+              onChange={(v) => setEnergyLevel(v as EnergyLevel | null)}
+              options={Object.entries(ENERGY_LABELS).map(([value, label]) => ({ value, label }))}
+            />
+          </div>
+        </div>
+
+        <button
+          type="submit"
+          disabled={saving}
+          className="w-full rounded-xl border border-gray-900 bg-white px-4 py-3 text-base font-semibold text-gray-900 transition active:scale-95 disabled:opacity-60"
+        >
+          {saving ? "Guardando..." : "Guardar cambios"}
+        </button>
+      </form>
+    </main>
+  );
+}
+
