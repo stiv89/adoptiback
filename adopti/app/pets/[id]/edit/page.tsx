@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { supabase } from "@/lib/supabase/client";
 import { useSession } from "@/components/auth/session-provider";
 import { useToast } from "@/components/ui/toast";
@@ -109,10 +110,21 @@ export default function EditPetPage() {
   const [special_needs, setSpecialNeeds] = useState<boolean | null>(null);
   const [energy_level, setEnergyLevel] = useState<EnergyLevel | null>(null);
   const [life_stage, setLifeStage] = useState<LifeStage | null>(null);
+  
+  // Fotos
+  const [existingPhotos, setExistingPhotos] = useState<Array<{ id: string; path: string; sort: number }>>([]);
+  const [newPhoto, setNewPhoto] = useState<File | null>(null);
+  const [newPhotoPreview, setNewPhotoPreview] = useState<string | null>(null);
+  const [deletingPhotoId, setDeletingPhotoId] = useState<string | null>(null);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
   useEffect(() => {
     (async () => {
-      const { data: pet, error } = await supabase.from("pets").select("*").eq("id", petId).single();
+      const { data: pet, error } = await supabase
+        .from("pets")
+        .select("*, pet_photos(id, path, sort)")
+        .eq("id", petId)
+        .single();
       if (error || !pet) {
         toast({ title: "Mascota no encontrada", variant: "error" });
         router.push("/");
@@ -139,6 +151,12 @@ export default function EditPetPage() {
       setSpecialNeeds(pet.special_needs ?? null);
       setEnergyLevel(pet.energy_level ?? null);
       setLifeStage(pet.life_stage ?? null);
+      
+      // Cargar fotos existentes
+      if (pet.pet_photos && Array.isArray(pet.pet_photos)) {
+        setExistingPhotos(pet.pet_photos.sort((a: any, b: any) => a.sort - b.sort));
+      }
+      
       setIsOwner(true);
       setLoading(false);
     })();
@@ -155,6 +173,92 @@ export default function EditPetPage() {
       toast({ title: err.message || "No se pudo obtener la ubicación", variant: "error" });
     } finally {
       setGeoLoading(false);
+    }
+  };
+
+  const handleDeletePhoto = async (photoId: string, photoPath: string) => {
+    if (!confirm("¿Estás seguro de que quieres eliminar esta foto?")) return;
+    
+    setDeletingPhotoId(photoId);
+    try {
+      // Eliminar de storage
+      const { error: storageError } = await supabase.storage.from("pet-photos").remove([photoPath]);
+      if (storageError) throw storageError;
+
+      // Eliminar de la base de datos
+      const { error: dbError } = await supabase.from("pet_photos").delete().eq("id", photoId);
+      if (dbError) throw dbError;
+
+      // Actualizar estado local
+      setExistingPhotos(existingPhotos.filter(p => p.id !== photoId));
+      toast({ title: "Foto eliminada", variant: "success" });
+    } catch (err: any) {
+      toast({ title: err.message || "Error al eliminar foto", variant: "error" });
+    } finally {
+      setDeletingPhotoId(null);
+    }
+  };
+
+  const handleNewPhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setNewPhoto(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setNewPhotoPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleRemoveNewPhoto = () => {
+    setNewPhoto(null);
+    setNewPhotoPreview(null);
+    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+    if (fileInput) {
+      fileInput.value = '';
+    }
+  };
+
+  const handleUploadNewPhoto = async () => {
+    if (!newPhoto || !user) return;
+
+    setUploadingPhoto(true);
+    try {
+      // Verificar autenticación
+      const { data: userRes } = await supabase.auth.getUser();
+      const authUser = userRes.user;
+      if (!authUser) throw new Error("No autenticado");
+
+      const filePath = `pets/${authUser.id}/${petId}/${crypto.randomUUID()}.jpg`;
+      
+      // Upload a storage
+      const { error: uploadError } = await supabase.storage.from("pet-photos").upload(filePath, newPhoto);
+      if (uploadError) throw uploadError;
+
+      // Insert en pet_photos
+      const maxSort = existingPhotos.length > 0 ? Math.max(...existingPhotos.map(p => p.sort)) : -1;
+      const { data: newPhotoData, error: insertError } = await supabase
+        .from("pet_photos")
+        .insert({
+          pet_id: petId,
+          path: filePath,
+          sort: maxSort + 1,
+        })
+        .select()
+        .single();
+
+      if (insertError) throw insertError;
+
+      // Actualizar estado local
+      setExistingPhotos([...existingPhotos, newPhotoData]);
+      setNewPhoto(null);
+      setNewPhotoPreview(null);
+      toast({ title: "Foto agregada", variant: "success" });
+    } catch (err: any) {
+      toast({ title: err.message || "Error al subir foto", variant: "error" });
+    } finally {
+      setUploadingPhoto(false);
     }
   };
 
@@ -286,6 +390,90 @@ export default function EditPetPage() {
               ✅ Ubicación: {lat.toFixed(4)}, {lng.toFixed(4)}
             </p>
           )}
+        </div>
+
+        <div className="rounded-2xl border border-gray-200 bg-white/80 p-4 shadow-sm">
+          <p className="mb-3 text-sm font-semibold text-gray-800">Fotos</p>
+          
+          {/* Fotos existentes */}
+          {existingPhotos.length > 0 && (
+            <div className="mb-4 space-y-3">
+              <p className="text-xs text-gray-600 mb-2">Fotos actuales:</p>
+              <div className="grid grid-cols-2 gap-3">
+                {existingPhotos.map((photo) => {
+                  const photoUrl = supabase.storage.from("pet-photos").getPublicUrl(photo.path).data.publicUrl;
+                  return (
+                    <div key={photo.id} className="relative aspect-square overflow-hidden rounded-xl border">
+                      <Image
+                        src={photoUrl}
+                        alt={`Foto ${photo.sort + 1}`}
+                        fill
+                        className="object-cover"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => handleDeletePhoto(photo.id, photo.path)}
+                        disabled={deletingPhotoId === photo.id}
+                        className="absolute top-2 right-2 rounded-full bg-red-500 p-1.5 text-white shadow-lg hover:bg-red-600 transition disabled:opacity-50"
+                        title="Eliminar foto"
+                      >
+                        {deletingPhotoId === photo.id ? (
+                          <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                          </svg>
+                        ) : (
+                          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        )}
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Agregar nueva foto */}
+          <div>
+            <label className="mb-2 block text-sm font-medium text-gray-700">
+              Agregar nueva foto
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleNewPhotoChange}
+                className="mt-1 w-full rounded-xl border px-3 py-2 text-sm outline-none ring-brand/30 focus:ring-2"
+              />
+            </label>
+            {newPhotoPreview && (
+              <div className="mt-3 space-y-2">
+                <div className="relative inline-block">
+                  <div className="aspect-square w-32 overflow-hidden rounded-xl border">
+                    <Image src={newPhotoPreview} alt="Nueva foto" width={128} height={128} className="h-full w-full object-cover" />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleRemoveNewPhoto}
+                    className="absolute -top-2 -right-2 rounded-full bg-red-500 p-1.5 text-white shadow-lg hover:bg-red-600 transition"
+                    title="Eliminar"
+                  >
+                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleUploadNewPhoto}
+                  disabled={uploadingPhoto}
+                  className="w-full rounded-xl border border-gray-900 bg-white px-4 py-2 text-sm font-semibold text-gray-900 transition active:scale-95 disabled:opacity-60"
+                >
+                  {uploadingPhoto ? "Subiendo..." : "Subir foto"}
+                </button>
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="rounded-2xl border border-gray-200 bg-white/80 p-4 shadow-sm">

@@ -77,18 +77,19 @@ export default function SaveButton({ petId, size = "md", className = "" }: Props
   };
 
   return (
-    <motion.button
-      onClick={handleToggle}
-      disabled={loading}
-      whileTap={{ scale: 0.85 }}
-      whileHover={{ scale: 1.05 }}
-      animate={justToggled && isSaved ? { scale: [1, 1.3, 1] } : {}}
-      transition={{ duration: 0.3, ease: "easeOut" }}
-      className={`flex items-center justify-center rounded-full disabled:opacity-60 ${sizeClasses[size]} ${className} ${
-        isSaved ? "text-red-500" : "text-gray-400 hover:text-red-400"
-      }`}
-      aria-label={isSaved ? "Quitar de guardados" : "Guardar mascota"}
-    >
+    <div className="relative group">
+      <motion.button
+        onClick={handleToggle}
+        disabled={loading}
+        whileTap={{ scale: 0.85 }}
+        whileHover={{ scale: 1.05 }}
+        animate={justToggled && isSaved ? { scale: [1, 1.3, 1] } : {}}
+        transition={{ duration: 0.3, ease: "easeOut" }}
+        className={`flex items-center justify-center rounded-full disabled:opacity-60 ${sizeClasses[size]} ${className} ${
+          isSaved ? "text-red-500" : "text-gray-400 hover:text-red-400"
+        }`}
+        aria-label={isSaved ? "Quitar de guardados" : "Guardar mascota"}
+      >
       {isSaved ? (
         <motion.svg
           key="saved"
@@ -106,7 +107,13 @@ export default function SaveButton({ petId, size = "md", className = "" }: Props
           <path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
         </svg>
       )}
-    </motion.button>
+      </motion.button>
+      <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
+        <div className="bg-gray-900 text-white text-xs px-2 py-1 rounded">
+          {isSaved ? "Quitar de guardados" : "Guardar"}
+        </div>
+      </div>
+    </div>
   );
 }
 

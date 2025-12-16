@@ -46,7 +46,7 @@ const authedNav = [
   { label: "Publicar", href: "/publish", icon: "plus" as const },
 ];
 
-function UserMenu({ user, buttonRef, menuRef, onClose }: { user: any; buttonRef: React.RefObject<HTMLButtonElement>; menuRef: React.RefObject<HTMLDivElement>; onClose: () => void }) {
+function UserMenu({ user, buttonRef, menuRef, onClose }: { user: any; buttonRef: React.RefObject<HTMLButtonElement | null>; menuRef: React.RefObject<HTMLDivElement | null>; onClose: () => void }) {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [position, setPosition] = useState({ top: 0, right: 0 });

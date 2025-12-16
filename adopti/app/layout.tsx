@@ -5,6 +5,7 @@ import "./globals.css";
 import { SessionProvider } from "@/components/auth/session-provider";
 import AppNav from "@/components/navigation/app-nav";
 import { ToastProvider } from "@/components/ui/toast";
+import { RegisterSW } from "@/components/pwa/register-sw";
 import Link from "next/link";
 
 const geistSans = Geist({
@@ -20,7 +21,43 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Adopti",
   description: "Encuentra tu próxima mascota en adopción",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Adopti",
+  },
+  formatDetection: {
+    telephone: false,
+  },
+  openGraph: {
+    type: "website",
+    siteName: "Adopti",
+    title: "Adopti - Encuentra tu próxima mascota en adopción",
+    description: "Encuentra perros y gatos en adopción. Publica y administra tus mascotas.",
+  },
+  icons: {
+    icon: [
+      { url: "/icon-192x192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icon-512x512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: [
+      { url: "/icon-152x152.png", sizes: "152x152", type: "image/png" },
+      { url: "/icon-192x192.png", sizes: "192x192", type: "image/png" },
+    ],
+  },
 };
+
+export function generateViewport() {
+  return {
+    themeColor: "#F47A5A",
+    width: "device-width",
+    initialScale: 1,
+    maximumScale: 1,
+    userScalable: false,
+    viewportFit: "cover",
+  };
+}
 
 export default function RootLayout({
   children,
@@ -28,10 +65,19 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="es">
+      <head>
+        <link rel="manifest" href="/manifest.json" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <meta name="apple-mobile-web-app-title" content="Adopti" />
+        <link rel="apple-touch-icon" href="/icon-192x192.png" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+      </head>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased bg-neutral-50 text-neutral-900`}>
         <SessionProvider>
           <ToastProvider>
+            <RegisterSW />
             <AppNav />
             <div className="min-h-screen pb-20 md:pb-0">{children}</div>
             <footer className="border-t border-gray-200 bg-white/95 backdrop-blur">

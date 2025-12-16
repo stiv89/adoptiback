@@ -1,4 +1,4 @@
-import { ENERGY_LABELS, STAGE_LABELS } from "@/lib/pets/tags";
+import { ENERGY_LABELS, STAGE_LABELS, type LifeStage, type EnergyLevel } from "@/lib/pets/tags";
 
 export function PetBadges({ pet }: { pet: any }) {
   const badges: string[] = [];
@@ -8,8 +8,12 @@ export function PetBadges({ pet }: { pet: any }) {
   if (pet.apartment_ok === true) badges.push("Depto ok");
   if (pet.special_needs === true) badges.push("Cuidados");
 
-  if (pet.life_stage) badges.push(STAGE_LABELS[pet.life_stage]);
-  if (pet.energy_level) badges.push(ENERGY_LABELS[pet.energy_level]);
+  if (pet.life_stage && pet.life_stage in STAGE_LABELS) {
+    badges.push(STAGE_LABELS[pet.life_stage as LifeStage]);
+  }
+  if (pet.energy_level && pet.energy_level in ENERGY_LABELS) {
+    badges.push(ENERGY_LABELS[pet.energy_level as EnergyLevel]);
+  }
 
   if (badges.length === 0) return null;
 

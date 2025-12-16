@@ -23,12 +23,12 @@ type Application = {
   id: string;
   pet_id: string;
   status: string;
-  message: string | null;
   created_at: string;
   pets: {
     id: string;
     name: string;
     city: string | null;
+    species: string | null;
     pet_photos: { path: string; sort: number }[];
   };
 };
@@ -48,6 +48,12 @@ const TrashIcon = () => (
 const PlusIcon = () => (
   <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+  </svg>
+);
+
+const ApplicationsIcon = () => (
+  <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
   </svg>
 );
 
@@ -83,7 +89,7 @@ export default function MisCosasPage() {
           .order("created_at", { ascending: false }),
         supabase
           .from("applications")
-          .select("id,pet_id,status,message,created_at,pets(id,name,city,pet_photos(path,sort))")
+          .select("id,pet_id,status,created_at,pets:pet_id(id,name,city,species,pet_photos(path,sort))")
           .eq("user_id", user.id)
           .order("created_at", { ascending: false }),
         supabase
@@ -190,23 +196,33 @@ export default function MisCosasPage() {
 
     setUploadingAvatar(true);
     try {
+      // Debug: Verificar autenticación antes del upload
+      const { data: userRes } = await supabase.auth.getUser();
+      const authUser = userRes.user;
+      
+      console.log("user:", authUser?.id);
+      if (!authUser) throw new Error("No autenticado al subir foto");
+
       const ext = file.name.split(".").pop();
-      const filePath = `avatars/${user.id}/avatar.${ext}`;
+      const filePath = `avatars/${authUser.id}/avatar.${ext}`;
+      console.log("upload path:", filePath);
 
-      const { error: uploadError } = await supabase.storage.from("pet-photos").upload(filePath, file, { upsert: true });
-
-      if (uploadError) throw uploadError;
+      // Upload a storage
+      const up = await supabase.storage.from("pet-photos").upload(filePath, file, { upsert: true });
+      console.log("upload result:", up);
+      if (up.error) throw up.error;
 
       const { data } = supabase.storage.from("pet-photos").getPublicUrl(filePath);
       const publicUrl = data.publicUrl;
 
-      const { error: dbError } = await supabase.from("profiles").update({ avatar_url: publicUrl }).eq("id", user.id);
+      const { error: dbError } = await supabase.from("profiles").update({ avatar_url: publicUrl }).eq("id", authUser.id);
 
       if (dbError) throw dbError;
 
       toast({ title: "Foto de perfil actualizada", variant: "success" });
       window.location.reload();
     } catch (err: any) {
+      console.error("Error en avatar upload:", err);
       toast({ title: err.message || "Error al subir foto", variant: "error" });
     } finally {
       setUploadingAvatar(false);
@@ -234,7 +250,7 @@ export default function MisCosasPage() {
       <div className="mt-6">
         <div className="mb-4 flex items-center gap-4">
           <div className="relative">
-            <UserAvatar userId={user.id} email={user.email} size={80} className="h-20 w-20" />
+            <UserAvatar userId={user.id} email={user.email ?? null} size={80} className="h-20 w-20" />
             <button
               onClick={() => fileInputRef.current?.click()}
               disabled={uploadingAvatar}
@@ -579,8 +595,16 @@ export default function MisCosasPage() {
                     </div>
                     <div className="flex gap-2">
                       <Link
+                        href={`/pets/${pet.id}/applications`}
+                        className="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 transition hover:bg-gray-50 active:scale-95"
+                        title="Ver postulaciones"
+                      >
+                        <ApplicationsIcon />
+                      </Link>
+                      <Link
                         href={`/pets/${pet.id}/edit`}
                         className="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 transition hover:bg-gray-50 active:scale-95"
+                        title="Editar"
                       >
                         <EditIcon />
                       </Link>
@@ -593,6 +617,7 @@ export default function MisCosasPage() {
                         <button
                           disabled={deletingId === pet.id}
                           className="flex h-8 w-8 items-center justify-center rounded-lg border border-red-200 bg-white text-red-600 transition hover:bg-red-50 active:scale-95 disabled:opacity-60"
+                          title="Eliminar"
                         >
                           <TrashIcon />
                         </button>

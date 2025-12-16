@@ -37,20 +37,20 @@ export default function EditButton({ petId }: { petId: string }) {
   if (loading || !isOwner) return null;
 
   return (
-    <div className="mt-4 flex flex-col gap-2">
+    <div className="flex flex-wrap gap-2">
       <Link
         href={`/pets/${petId}/applications`}
-        className="flex items-center justify-center gap-2 w-full rounded-xl border border-gray-900 bg-white px-4 py-3 text-center text-sm font-semibold text-gray-900 transition active:scale-95"
+        className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50 active:scale-95"
       >
         <ApplicationsIcon />
         Ver postulaciones
       </Link>
       <Link
         href={`/pets/${petId}/edit`}
-        className="flex items-center justify-center gap-2 w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-center text-sm font-semibold text-gray-700 transition active:scale-95"
+        className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50 active:scale-95"
       >
         <EditIcon />
-        Editar mascota
+        Editar
       </Link>
     </div>
   );

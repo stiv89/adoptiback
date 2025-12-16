@@ -194,6 +194,16 @@ export default function PublishPage() {
     }
   };
 
+  const handleRemovePhoto = () => {
+    setPhoto(null);
+    setPhotoPreview(null);
+    // Limpiar el input file
+    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+    if (fileInput) {
+      fileInput.value = '';
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -271,16 +281,42 @@ export default function PublishPage() {
 
       // 2. Subir foto si hay
       if (photo) {
-        const filePath = `pets/${pet.id}/${crypto.randomUUID()}.jpg`;
-        const { error: uploadError } = await supabase.storage.from("pet-photos").upload(filePath, photo);
-        if (uploadError) throw uploadError;
+        // Debug: Verificar autenticación antes del upload
+        const { data: userRes } = await supabase.auth.getUser();
+        const user = userRes.user;
+        
+        console.log("user:", user?.id);
+        if (!user) throw new Error("No autenticado al subir foto");
 
-        const { error: photoError } = await supabase.from("pet_photos").insert({
+        const filePath = `pets/${user.id}/${pet.id}/${crypto.randomUUID()}.jpg`;
+        console.log("upload path:", filePath);
+
+        // Upload a storage
+        const up = await supabase.storage.from("pet-photos").upload(filePath, photo, { upsert: false });
+        console.log("upload result:", up);
+        if (up.error) {
+          console.error("Error uploading photo:", up.error);
+          throw new Error(up.error.message || "Error al subir la foto");
+        }
+
+        // Insert en pet_photos
+        const ins = await supabase.from("pet_photos").insert({
           pet_id: pet.id,
           path: filePath,
           sort: 0,
-        });
-        if (photoError) throw photoError;
+        }).select().single();
+        console.log("insert pet_photos:", ins);
+        if (ins.error) {
+          console.error("Error inserting photo record:", ins.error);
+          // Si falla la inserción, intentamos eliminar el archivo subido
+          await supabase.storage.from("pet-photos").remove([filePath]);
+          
+          // Mensaje más específico para errores de RLS
+          if (ins.error.code === "42501" || ins.error.message.includes("row-level security")) {
+            throw new Error("Error de permisos al guardar la foto. Verifica que tengas permisos para esta mascota.");
+          }
+          throw new Error(ins.error.message || "Error al guardar la información de la foto");
+        }
       }
 
       // Limpiar draft al publicar
@@ -477,8 +513,20 @@ export default function PublishPage() {
             Las mascotas con foto reciben muchas más postulaciones
           </p>
           {photoPreview && (
-            <div className="mt-2 aspect-square w-32 overflow-hidden rounded-xl border">
-              <Image src={photoPreview} alt="Preview" width={128} height={128} className="h-full w-full object-cover" />
+            <div className="mt-2 relative inline-block">
+              <div className="aspect-square w-32 overflow-hidden rounded-xl border">
+                <Image src={photoPreview} alt="Preview" width={128} height={128} className="h-full w-full object-cover" />
+              </div>
+              <button
+                type="button"
+                onClick={handleRemovePhoto}
+                className="absolute -top-2 -right-2 rounded-full bg-red-500 p-1.5 text-white shadow-lg hover:bg-red-600 transition"
+                title="Eliminar foto"
+              >
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
             </div>
           )}
         </div>

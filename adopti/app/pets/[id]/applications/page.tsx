@@ -13,7 +13,6 @@ type Application = {
   id: string;
   user_id: string;
   status: string;
-  message: string | null;
   created_at: string;
   profiles: {
     id: string;
@@ -53,7 +52,7 @@ export default function ApplicationsPage() {
       // Cargar postulaciones
       const { data, error } = await supabase
         .from("applications")
-        .select("id,user_id,status,message,created_at,profiles(id,display_name,avatar_url)")
+        .select("id,user_id,status,created_at,profiles(id,display_name,avatar_url)")
         .eq("pet_id", petId)
         .order("created_at", { ascending: false });
 
@@ -111,9 +110,6 @@ export default function ApplicationsPage() {
                     <p className="text-xs text-gray-500">
                       {new Date(app.created_at).toLocaleDateString("es-PY")}
                     </p>
-                    {app.message && (
-                      <p className="mt-2 text-sm text-gray-700">{app.message}</p>
-                    )}
                     <div className="mt-2">
                       <span className="rounded-full bg-brand-50 px-2 py-0.5 text-xs font-medium text-brand">
                         {app.status}

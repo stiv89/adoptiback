@@ -13,34 +13,63 @@ type Props = {
 type Application = {
   id: string;
   status: string;
-  message: string | null;
+  created_at: string;
 };
 
 export default function ApplyCta({ petId }: Props) {
   const { user, loading } = useSession();
   const [app, setApp] = useState<Application | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [petName, setPetName] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!user) {
-      setApp(null);
-      return;
-    }
+    // Cargar nombre de la mascota
+    const loadPetName = async () => {
+      const { data } = await supabase.from("pets").select("name").eq("id", petId).single();
+      if (data) setPetName(data.name);
+    };
+    loadPetName();
 
-    const loadApp = async () => {
-      const { data, error } = await supabase
+    // Query: "¿ya me postulé a esta mascota?"
+    const checkApplication = async () => {
+      const { data: userRes } = await supabase.auth.getUser();
+      const user = userRes.user;
+      if (!user) {
+        setApp(null);
+        return;
+      }
+
+      const { data: existing } = await supabase
         .from("applications")
-        .select("id,status,message")
+        .select("id,status,created_at")
         .eq("pet_id", petId)
         .eq("user_id", user.id)
-        .limit(1)
         .maybeSingle();
 
-      if (!error && data) setApp(data);
+      setApp(existing ?? null);
     };
 
-    loadApp();
-  }, [petId, user]);
+    checkApplication();
+  }, [petId]);
+
+  const handleModalSuccess = () => {
+    // Recargar aplicación después de enviar
+    const checkApplication = async () => {
+      const { data: userRes } = await supabase.auth.getUser();
+      const user = userRes.user;
+      if (!user) return;
+
+      const { data: existing } = await supabase
+        .from("applications")
+        .select("id,status,created_at")
+        .eq("pet_id", petId)
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      setApp(existing ?? null);
+    };
+    checkApplication();
+  };
 
   if (loading) {
     return (
@@ -50,55 +79,62 @@ export default function ApplyCta({ petId }: Props) {
     );
   }
 
+  // Estado A: no logueado
   if (!user) {
     return (
-      <div className="sticky bottom-4 mt-4 rounded-2xl border bg-white/90 p-4 text-center backdrop-blur">
-        <p className="text-sm text-neutral-700">Inicia sesión para postular.</p>
-        <div className="mt-3 flex gap-2">
-          <Link
-            href="/login"
-            className="flex-1 rounded-xl border px-4 py-2 text-sm font-semibold text-brand hover:bg-brand-soft"
-          >
-            Ingresar
-          </Link>
-          <Link
-            href="/register"
-            className="flex-1 rounded-xl bg-brand px-4 py-2 text-sm font-semibold text-white hover:bg-brand-500/90"
-          >
-            Crear cuenta
-          </Link>
-        </div>
+      <div className="rounded-2xl border border-gray-200 bg-white p-6 text-center">
+        <Link
+          href="/login"
+          className="block w-full rounded-xl bg-[#F47A5A] px-6 py-4 text-base font-semibold text-white transition hover:bg-[#e96a4b] active:scale-95 shadow-lg"
+        >
+          Iniciá sesión para postular
+        </Link>
       </div>
     );
   }
 
+  // Estado C: logueado y YA postuló
+  if (app) {
+    return (
+      <div className="rounded-2xl border border-gray-200 bg-white p-6">
+        <button
+          disabled
+          className="w-full rounded-xl bg-gray-100 px-6 py-4 text-base font-semibold text-gray-500 cursor-not-allowed"
+        >
+          Ya te postulaste
+        </button>
+        <Link
+          href="/profile"
+          className="mt-3 block w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-center text-sm font-semibold text-gray-700 transition hover:bg-gray-50 active:scale-95"
+        >
+          Ver mi postulación
+        </Link>
+      </div>
+    );
+  }
+
+  // Estado B: logueado y NO postuló
   return (
     <>
-      <div className="sticky bottom-4 mt-4 rounded-2xl border bg-white/95 p-4 shadow-md backdrop-blur">
-        <div className="flex items-center justify-between">
-          <span className="text-sm font-semibold text-neutral-800">Postularme</span>
-          {app ? (
-            <span className="rounded-full bg-brand-soft px-2 py-1 text-[11px] font-semibold text-brand">
-              {app.status}
-            </span>
-          ) : null}
-        </div>
-
-        {app ? (
-          <p className="mt-2 text-sm text-neutral-600">
-            Ya enviaste tu postulación. Estado: <strong>{app.status}</strong>
-          </p>
-        ) : (
-          <button
-            onClick={() => setIsModalOpen(true)}
-            className="mt-3 w-full rounded-xl bg-brand px-4 py-3 text-sm font-semibold text-white transition hover:bg-brand-500/90 active:scale-95"
-          >
-            Postularme
-          </button>
-        )}
+      <div className="rounded-2xl border border-gray-200 bg-white p-6">
+        <button
+          onClick={() => setIsModalOpen(true)}
+          className="w-full rounded-xl bg-[#F47A5A] px-6 py-4 text-base font-semibold text-white transition hover:bg-[#e96a4b] active:scale-95 shadow-lg"
+        >
+          Quiero adoptar
+        </button>
+        <p className="mt-2 text-center text-xs text-gray-500">
+          Te pondremos en contacto con el responsable
+        </p>
       </div>
 
-      <ApplyModal petId={petId} isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
+      <ApplyModal 
+        petId={petId} 
+        petName={petName ?? undefined}
+        isOpen={isModalOpen} 
+        onClose={() => setIsModalOpen(false)}
+        onSuccess={handleModalSuccess}
+      />
     </>
   );
 }
